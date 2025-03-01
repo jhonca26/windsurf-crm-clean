@@ -19,13 +19,30 @@ export function ClientList() {
 
   async function fetchClients() {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      setError(null);
+
+      // Verificar la conexión con Supabase
+      if (!supabase) {
+        throw new Error('No se pudo establecer conexión con la base de datos');
+      }
+
+      // Verificar que el usuario esté autenticado
+      if (!user?.id) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      const { data, error: supabaseError } = await supabase
         .from('clients')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (supabaseError) {
+        console.error('Supabase error:', supabaseError);
+        throw new Error(supabaseError.message);
+      }
+
       setClients(data || []);
     } catch (err) {
       console.error('Error fetching clients:', err);
@@ -52,6 +69,12 @@ export function ClientList() {
     return (
       <div className="bg-red-50 p-4 rounded-lg">
         <p className="text-red-500">{error}</p>
+        <button
+          onClick={fetchClients}
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+        >
+          Reintentar
+        </button>
       </div>
     );
   }
