@@ -1,13 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/authStore';
+import type { Client } from '../types/client';
 
 interface ClientFormProps {
   onSuccess: () => void;
   onCancel: () => void;
+  client?: Client;
 }
 
-export function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
+export function ClientForm({ onSuccess, onCancel, client }: ClientFormProps) {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +19,22 @@ export function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
     email: '',
     phone: '',
     experience_level: 'Principiante',
-    notes: ''
+    notes: '',
+    status: 'Activo'
   });
+
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        full_name: client.full_name,
+        email: client.email || '',
+        phone: client.phone || '',
+        experience_level: client.experience_level,
+        notes: client.notes || '',
+        status: client.status || 'Activo'
+      });
+    }
+  }, [client]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,18 +42,28 @@ export function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
     setError(null);
 
     try {
-      const { error } = await supabase.from('clients').insert([
-        {
-          ...formData,
-          user_id: user?.id
-        }
-      ]);
+      if (client) {
+        // Actualizar cliente existente
+        const { error } = await supabase
+          .from('clients')
+          .update(formData)
+          .eq('id', client.id)
+          .eq('user_id', user?.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Crear nuevo cliente
+        const { error } = await supabase
+          .from('clients')
+          .insert([{ ...formData, user_id: user?.id }]);
+
+        if (error) throw error;
+      }
+      
       onSuccess();
     } catch (err) {
-      console.error('Error creating client:', err);
-      setError(err instanceof Error ? err.message : 'Error al crear el cliente');
+      console.error('Error saving client:', err);
+      setError(err instanceof Error ? err.message : 'Error al guardar el cliente');
     } finally {
       setLoading(false);
     }
@@ -52,7 +78,9 @@ export function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Nuevo Cliente</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">
+        {client ? 'Editar Cliente' : 'Nuevo Cliente'}
+      </h2>
       
       {error && (
         <div className="mb-4 bg-red-50 p-4 rounded">
@@ -118,6 +146,22 @@ export function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
             <option value="Principiante">Principiante</option>
             <option value="Intermedio">Intermedio</option>
             <option value="Avanzado">Avanzado</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+            Estado
+          </label>
+          <select
+            id="status"
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+          >
+            <option value="Activo">Activo</option>
+            <option value="Inactivo">Inactivo</option>
           </select>
         </div>
 

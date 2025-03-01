@@ -9,6 +9,7 @@ export function ClientList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | undefined>();
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -22,12 +23,10 @@ export function ClientList() {
       setLoading(true);
       setError(null);
 
-      // Verificar la conexión con Supabase
       if (!supabase) {
         throw new Error('No se pudo establecer conexión con la base de datos');
       }
 
-      // Verificar que el usuario esté autenticado
       if (!user?.id) {
         throw new Error('Usuario no autenticado');
       }
@@ -54,7 +53,37 @@ export function ClientList() {
 
   const handleFormSuccess = () => {
     setShowForm(false);
+    setSelectedClient(undefined);
     fetchClients();
+  };
+
+  const handleEdit = (client: Client) => {
+    setSelectedClient(client);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (client: Client) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este cliente?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', client.id)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      fetchClients();
+    } catch (err) {
+      console.error('Error deleting client:', err);
+      alert('Error al eliminar el cliente');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -83,7 +112,11 @@ export function ClientList() {
     return (
       <ClientForm 
         onSuccess={handleFormSuccess}
-        onCancel={() => setShowForm(false)}
+        onCancel={() => {
+          setShowForm(false);
+          setSelectedClient(undefined);
+        }}
+        client={selectedClient}
       />
     );
   }
@@ -148,8 +181,18 @@ export function ClientList() {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button className="text-indigo-600 hover:text-indigo-900 mr-4">Editar</button>
-                  <button className="text-red-600 hover:text-red-900">Eliminar</button>
+                  <button 
+                    onClick={() => handleEdit(client)}
+                    className="text-indigo-600 hover:text-indigo-900 mr-4"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(client)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Eliminar
+                  </button>
                 </td>
               </tr>
             ))}
