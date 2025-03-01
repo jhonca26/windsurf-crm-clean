@@ -1,31 +1,44 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../store/authStore';
+import { ClientForm } from './ClientForm';
 import type { Client } from '../types/client';
 
 export function ClientList() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const { user } = useAuthStore();
 
   useEffect(() => {
-    fetchClients();
-  }, []);
+    if (user) {
+      fetchClients();
+    }
+  }, [user]);
 
   async function fetchClients() {
     try {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setClients(data || []);
     } catch (err) {
+      console.error('Error fetching clients:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar clientes');
     } finally {
       setLoading(false);
     }
   }
+
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    fetchClients();
+  };
 
   if (loading) {
     return (
@@ -43,11 +56,23 @@ export function ClientList() {
     );
   }
 
+  if (showForm) {
+    return (
+      <ClientForm 
+        onSuccess={handleFormSuccess}
+        onCancel={() => setShowForm(false)}
+      />
+    );
+  }
+
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-900">Clientes</h2>
-        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <button 
+          onClick={() => setShowForm(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
           Nuevo Cliente
         </button>
       </div>
