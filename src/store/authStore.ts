@@ -54,22 +54,34 @@ export const useAuthStore = create<AuthState>()(
                 ...session.user,
                 role: 'agent'
               };
+              console.log('Setting default role:', userWithDefaultRole);
               set({ user: userWithDefaultRole, isLoading: false });
               return;
             }
 
             console.log('User data from DB:', userData); // Debug log
 
+            // Asegurarnos de que el rol sea válido
+            const role = userData?.role && ['admin', 'agent'].includes(userData.role) 
+              ? userData.role as 'admin' | 'agent'
+              : 'agent';
+
             const userWithRole: CustomUser = {
               ...session.user,
-              role: userData?.role || 'agent'
+              role
             };
 
             console.log('Setting user with role:', userWithRole); // Debug log
             set({ user: userWithRole, isLoading: false });
           } catch (dbError) {
             console.error('Database error:', dbError);
-            set({ user: null, isLoading: false });
+            // En caso de error, establecer un rol por defecto
+            const userWithDefaultRole: CustomUser = {
+              ...session.user,
+              role: 'agent'
+            };
+            console.log('Setting default role after error:', userWithDefaultRole);
+            set({ user: userWithDefaultRole, isLoading: false });
           }
         } catch (error) {
           console.error('Error in checkSession:', error);
@@ -111,22 +123,34 @@ export const useAuthStore = create<AuthState>()(
                 ...data.user,
                 role: 'agent'
               };
+              console.log('Setting default role during sign in:', userWithDefaultRole);
               set({ user: userWithDefaultRole, isLoading: false });
               return;
             }
 
             console.log('User role data:', userData); // Debug log
 
+            // Asegurarnos de que el rol sea válido
+            const role = userData?.role && ['admin', 'agent'].includes(userData.role)
+              ? userData.role as 'admin' | 'agent'
+              : 'agent';
+
             const userWithRole: CustomUser = {
               ...data.user,
-              role: userData?.role || 'agent'
+              role
             };
 
             console.log('Setting user after sign in:', userWithRole); // Debug log
             set({ user: userWithRole, isLoading: false });
           } catch (dbError) {
             console.error('Database error during sign in:', dbError);
-            throw dbError;
+            // En caso de error, establecer un rol por defecto
+            const userWithDefaultRole: CustomUser = {
+              ...data.user,
+              role: 'agent'
+            };
+            console.log('Setting default role after sign in error:', userWithDefaultRole);
+            set({ user: userWithDefaultRole, isLoading: false });
           }
         } catch (error) {
           console.error('Error in signIn:', error);
