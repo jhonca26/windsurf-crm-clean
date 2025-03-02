@@ -24,8 +24,7 @@ const Clients: React.FC = () => {
 
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
-        .order('full_name');
+        .select('*');
 
       if (error) {
         console.error('Error fetching clients:', error);
@@ -44,7 +43,12 @@ const Clients: React.FC = () => {
         updated_at: client.updated_at || null
       }));
 
-      setClients(processedData);
+      // Ordenar los clientes por nombre después de procesarlos
+      const sortedData = processedData.sort((a, b) => 
+        a.full_name.localeCompare(b.full_name)
+      );
+
+      setClients(sortedData);
     } catch (err) {
       console.error('Error fetching clients:', err);
       setError('Error al cargar los clientes');

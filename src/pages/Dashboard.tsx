@@ -104,7 +104,7 @@ const Dashboard: React.FC = () => {
           id,
           created_at,
           status,
-          client:client_id (
+          clients (
             full_name
           )
         `)
@@ -120,7 +120,7 @@ const Dashboard: React.FC = () => {
       const recentActivity = (consultationsActivityResult.data || []).map(consultation => ({
         id: consultation.id,
         type: 'consultation',
-        description: `Nueva consulta ${consultation.client?.full_name ? `de ${consultation.client.full_name}` : 'de cliente'}`,
+        description: `Nueva consulta ${consultation.clients?.full_name ? `de ${consultation.clients.full_name}` : 'de cliente'}`,
         created_at: consultation.created_at,
         status: consultation.status || 'pending'
       }));
@@ -205,7 +205,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="p-3 bg-blue-100 rounded-full">
               <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
           </div>
@@ -226,33 +226,15 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Campañas Activas */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500 mb-1">Campañas Activas</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeCampaigns}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-full">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Ingresos del Mes */}
-      <div className="mt-6">
+        {/* Ingresos del Mes */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 mb-1">Ingresos del Mes</p>
               <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.monthlyIncome)}</p>
             </div>
-            <div className="p-3 bg-purple-100 rounded-full">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-3 bg-green-100 rounded-full">
+              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
@@ -264,27 +246,34 @@ const Dashboard: React.FC = () => {
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-4">Actividad Reciente</h2>
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          {stats.recentActivity.length > 0 ? (
-            <div className="divide-y divide-gray-200">
-              {stats.recentActivity.map((activity) => (
-                <div key={activity.id} className="p-4">
-                  <div className="flex justify-between items-center">
-                    <p className="text-gray-900">{activity.description}</p>
-                    <span className={`text-sm ${getStatusColor(activity.status)}`}>
-                      {activity.status}
-                    </span>
+          <div className="divide-y divide-gray-200">
+            {stats.recentActivity.map((activity) => (
+              <div key={activity.id} className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{activity.description}</p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(activity.created_at).toLocaleDateString('es-CO', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {new Date(activity.created_at).toLocaleDateString()}
-                  </p>
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(activity.status)}`}>
+                    {activity.status}
+                  </span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-6 text-center text-gray-500">
-              No hay actividad reciente para mostrar
-            </div>
-          )}
+              </div>
+            ))}
+            {stats.recentActivity.length === 0 && (
+              <div className="p-4 text-center text-gray-500">
+                No hay actividad reciente
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
