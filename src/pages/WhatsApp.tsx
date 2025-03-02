@@ -13,8 +13,8 @@ interface Message {
 
 interface Client {
   id: string;
-  full_name: string;
-  phone: string;
+  full_name: string | null;
+  phone: string | null;
   last_message?: string;
   last_message_at?: string;
   unread_count?: number;
@@ -96,13 +96,15 @@ const WhatsAppPage: React.FC = () => {
         created_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
-        .insert([message]);
+        .insert([message])
+        .select()
+        .single();
 
       if (error) throw error;
 
-      setMessages([...messages, message as Message]);
+      setMessages([...messages, data]);
       setNewMessage('');
     } catch (err) {
       console.error('Error sending message:', err);
@@ -110,10 +112,15 @@ const WhatsAppPage: React.FC = () => {
     }
   };
 
-  const filteredClients = clients.filter(client =>
-    client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone.includes(searchTerm)
-  );
+  const filteredClients = clients.filter(client => {
+    if (!client.full_name && !client.phone) return false;
+    
+    const searchTermLower = searchTerm.toLowerCase();
+    const fullName = client.full_name?.toLowerCase() || '';
+    const phone = client.phone || '';
+
+    return fullName.includes(searchTermLower) || phone.includes(searchTerm);
+  });
 
   return (
     <div className="flex h-[calc(100vh-6rem)] bg-gray-100">
@@ -147,11 +154,11 @@ const WhatsAppPage: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {client.full_name}
+                    {client.full_name || 'Sin nombre'}
                   </p>
-                  <p className="text-sm text-gray-500 truncate">{client.phone}</p>
+                  <p className="text-sm text-gray-500 truncate">{client.phone || 'Sin teléfono'}</p>
                 </div>
-                {client.unread_count && (
+                {client.unread_count && client.unread_count > 0 && (
                   <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
                     {client.unread_count}
                   </div>
@@ -172,9 +179,9 @@ const WhatsAppPage: React.FC = () => {
                 <User className="h-8 w-8 text-gray-400" />
                 <div>
                   <h2 className="text-lg font-medium text-gray-900">
-                    {selectedClient.full_name}
+                    {selectedClient.full_name || 'Sin nombre'}
                   </h2>
-                  <p className="text-sm text-gray-500">{selectedClient.phone}</p>
+                  <p className="text-sm text-gray-500">{selectedClient.phone || 'Sin teléfono'}</p>
                 </div>
               </div>
               <button className="p-2 text-gray-400 hover:text-gray-600">
@@ -201,6 +208,11 @@ const WhatsAppPage: React.FC = () => {
                     <p className="text-sm">{message.content}</p>
                     <p className="text-xs mt-1 opacity-75">
                       {new Date(message.created_at).toLocaleTimeString()}
+                      {message.direction === 'outgoing' && (
+                        <span className="ml-2">
+                          {message.status === 'read' ? '✓✓' : message.status === 'delivered' ? '✓✓' : '✓'}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -210,7 +222,7 @@ const WhatsAppPage: React.FC = () => {
 
             {/* Input de mensaje */}
             <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-200">
-              <div className="flex items-center space-x-2">
+              <div className="flex space-x-4">
                 <input
                   type="text"
                   value={newMessage}
@@ -221,7 +233,7 @@ const WhatsAppPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={!newMessage.trim()}
-                  className="p-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="h-5 w-5" />
                 </button>
@@ -231,10 +243,11 @@ const WhatsAppPage: React.FC = () => {
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">
-                Selecciona un cliente para empezar a chatear
-              </h3>
+              <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No hay chat seleccionado</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Selecciona un cliente para comenzar a chatear
+              </p>
             </div>
           </div>
         )}
