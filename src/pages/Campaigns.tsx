@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Send, BarChart, Edit2, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Plus, Edit2, Trash2, Play, Pause } from 'lucide-react';
 
 interface Campaign {
   id: string;
   name: string;
+  description: string;
+  status: 'draft' | 'active' | 'paused' | 'completed';
   type: 'email' | 'sms' | 'whatsapp';
-  status: 'draft' | 'scheduled' | 'running' | 'completed' | 'failed';
   target_audience: string;
-  content: string;
-  scheduled_for: string | null;
-  sent_count: number;
-  open_rate?: number;
-  click_rate?: number;
+  start_date: string;
+  end_date?: string;
   created_at: string;
+  metrics: {
+    sent: number;
+    delivered: number;
+    opened: number;
+    clicked: number;
+    converted: number;
+  };
 }
 
 const CampaignsPage: React.FC = () => {
@@ -21,12 +26,13 @@ const CampaignsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<Campaign>>({
     name: '',
-    type: 'email' as const,
-    target_audience: 'all',
-    content: '',
-    scheduled_for: ''
+    description: '',
+    type: 'email',
+    target_audience: '',
+    start_date: new Date().toISOString().split('T')[0],
+    status: 'draft'
   });
 
   useEffect(() => {
@@ -42,16 +48,7 @@ const CampaignsPage: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Validar y transformar los datos antes de guardarlos
-      const validatedCampaigns = (data || []).map(campaign => ({
-        ...campaign,
-        type: campaign.type || 'email', // Valor por defecto si type es null
-        status: campaign.status || 'draft', // Valor por defecto si status es null
-        sent_count: campaign.sent_count || 0 // Valor por defecto si sent_count es null
-      }));
-
-      setCampaigns(validatedCampaigns);
+      setCampaigns(data || []);
     } catch (err) {
       console.error('Error fetching campaigns:', err);
       setError('Error al cargar las campañas');
@@ -67,9 +64,14 @@ const CampaignsPage: React.FC = () => {
         .from('campaigns')
         .insert([{
           ...formData,
-          status: 'draft',
-          sent_count: 0,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          metrics: {
+            sent: 0,
+            delivered: 0,
+            opened: 0,
+            clicked: 0,
+            converted: 0
+          }
         }]);
 
       if (error) throw error;
@@ -82,7 +84,23 @@ const CampaignsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+      const { error } = await supabase
+        .from('campaigns')
+        .update({ status: newStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchCampaigns();
+    } catch (err) {
+      console.error('Error toggling campaign status:', err);
+      setError('Error al actualizar el estado de la campaña');
+    }
+  };
+
+  const deleteCampaign = async (id: string) => {
     if (!confirm('¿Estás seguro de que quieres eliminar esta campaña?')) return;
 
     try {
@@ -92,31 +110,29 @@ const CampaignsPage: React.FC = () => {
         .eq('id', id);
 
       if (error) throw error;
-      setCampaigns(campaigns.filter(campaign => campaign.id !== id));
+      fetchCampaigns();
     } catch (err) {
       console.error('Error deleting campaign:', err);
       setError('Error al eliminar la campaña');
     }
   };
 
-  const getStatusColor = (status: Campaign['status']) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-800';
-      case 'scheduled': return 'bg-blue-100 text-blue-800';
-      case 'running': return 'bg-yellow-100 text-yellow-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'failed': return 'bg-red-100 text-red-800';
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'paused': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getTypeDisplay = (type: Campaign['type']) => {
-    const typeMap = {
-      email: 'EMAIL',
-      sms: 'SMS',
-      whatsapp: 'WHATSAPP'
-    };
-    return typeMap[type] || 'N/A';
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'whatsapp': return '📱';
+      case 'email': return '📧';
+      case 'sms': return '💬';
+      default: return '📢';
+    }
   };
 
   return (
@@ -151,8 +167,8 @@ const CampaignsPage: React.FC = () => {
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900">
-                    {campaign.name}
+                  <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                    {getTypeIcon(campaign.type)} {campaign.name}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
                     {new Date(campaign.created_at).toLocaleDateString()}
@@ -163,41 +179,71 @@ const CampaignsPage: React.FC = () => {
                 </span>
               </div>
 
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center text-sm text-gray-600">
-                  <Send className="h-4 w-4 mr-2" />
-                  {getTypeDisplay(campaign.type)}
+              <p className="mt-2 text-sm text-gray-600">
+                {campaign.description}
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="text-sm">
+                  <p className="text-gray-500">Inicio</p>
+                  <p className="font-medium">{new Date(campaign.start_date).toLocaleDateString()}</p>
                 </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <BarChart className="h-4 w-4 mr-2" />
-                  Enviados: {campaign.sent_count}
-                  {campaign.open_rate && ` | Abiertos: ${campaign.open_rate}%`}
+                {campaign.end_date && (
+                  <div className="text-sm">
+                    <p className="text-gray-500">Fin</p>
+                    <p className="font-medium">{new Date(campaign.end_date).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs">
+                <div>
+                  <p className="text-gray-500">Enviados</p>
+                  <p className="font-medium">{campaign.metrics.sent}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Entregados</p>
+                  <p className="font-medium">{campaign.metrics.delivered}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Abiertos</p>
+                  <p className="font-medium">{campaign.metrics.opened}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Clicks</p>
+                  <p className="font-medium">{campaign.metrics.clicked}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Conversiones</p>
+                  <p className="font-medium">{campaign.metrics.converted}</p>
                 </div>
               </div>
 
               <div className="mt-6 flex justify-between items-center">
                 <div className="space-x-2">
                   <button
-                    onClick={() => {/* Implementar edición */}}
-                    className="text-pink-600 hover:text-pink-900"
+                    onClick={() => toggleStatus(campaign.id, campaign.status)}
+                    className={`p-2 rounded-full ${
+                      campaign.status === 'active' 
+                        ? 'text-green-600 hover:bg-green-50' 
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {campaign.status === 'active' ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  </button>
+                  <button
+                    onClick={() => setShowForm(true)}
+                    className="p-2 rounded-full text-blue-600 hover:bg-blue-50"
                   >
                     <Edit2 className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => handleDelete(campaign.id)}
-                    className="text-red-600 hover:text-red-900"
+                    onClick={() => deleteCampaign(campaign.id)}
+                    className="p-2 rounded-full text-red-600 hover:bg-red-50"
                   >
                     <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
-                {campaign.status === 'draft' && (
-                  <button
-                    onClick={() => {/* Implementar envío */}}
-                    className="px-3 py-1 text-sm bg-pink-600 text-white rounded hover:bg-pink-700"
-                  >
-                    Enviar
-                  </button>
-                )}
               </div>
             </div>
           ))}
@@ -227,6 +273,20 @@ const CampaignsPage: React.FC = () => {
               </div>
 
               <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                  Descripción
+                </label>
+                <textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div>
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700">
                   Tipo de Campaña
                 </label>
@@ -243,45 +303,30 @@ const CampaignsPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="target" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="target_audience" className="block text-sm font-medium text-gray-700">
                   Audiencia Objetivo
                 </label>
-                <select
-                  id="target"
+                <input
+                  type="text"
+                  id="target_audience"
                   value={formData.target_audience}
                   onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
-                >
-                  <option value="all">Todos los clientes</option>
-                  <option value="active">Clientes activos</option>
-                  <option value="inactive">Clientes inactivos</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-                  Contenido
-                </label>
-                <textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={4}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="schedule" className="block text-sm font-medium text-gray-700">
-                  Programar para (opcional)
+                <label htmlFor="start_date" className="block text-sm font-medium text-gray-700">
+                  Fecha de Inicio
                 </label>
                 <input
-                  type="datetime-local"
-                  id="schedule"
-                  value={formData.scheduled_for}
-                  onChange={(e) => setFormData({ ...formData, scheduled_for: e.target.value })}
+                  type="date"
+                  id="start_date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
+                  required
                 />
               </div>
 
