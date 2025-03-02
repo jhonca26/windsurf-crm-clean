@@ -9,24 +9,24 @@ export interface User {
 export interface Client {
   id: string;
   user_id: string;
-  full_name: string;
-  email?: string;
-  phone?: string;
-  experience_level: 'Principiante' | 'Intermedio' | 'Avanzado';
-  status: 'Activo' | 'Inactivo';
-  notes?: string;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  experience_level: 'Principiante' | 'Intermedio' | 'Avanzado' | null;
+  status: 'Activo' | 'Inactivo' | null;
+  notes: string | null;
   created_at: string;
-  updated_at?: string;
+  updated_at: string | null;
 }
 
 export interface VirtualPBX {
   id: string;
   user_id: string;
   phone_number: string;
-  description?: string;
+  description: string | null;
   status: 'active' | 'inactive';
   created_at: string;
-  updated_at?: string;
+  updated_at: string | null;
 }
 
 export interface Campaign {
@@ -37,12 +37,12 @@ export interface Campaign {
   status: 'draft' | 'scheduled' | 'running' | 'completed' | 'failed';
   target_audience: string;
   content: string;
-  scheduled_for?: string;
+  scheduled_for: string | null;
   sent_count: number;
-  open_rate?: number;
-  click_rate?: number;
+  open_rate: number | null;
+  click_rate: number | null;
   created_at: string;
-  updated_at?: string;
+  updated_at: string | null;
 }
 
 export interface Message {
@@ -60,9 +60,9 @@ export interface Integration {
   user_id: string;
   integration_id: string;
   status: 'connected' | 'disconnected';
-  settings?: Record<string, any>;
+  settings: Record<string, any> | null;
   created_at: string;
-  updated_at?: string;
+  updated_at: string | null;
 }
 
 export interface Payment {
@@ -73,9 +73,9 @@ export interface Payment {
   currency: string;
   status: 'pending' | 'completed' | 'failed';
   payment_method: 'stripe' | 'paypal' | 'bizum';
-  payment_id?: string;
+  payment_id: string | null;
   created_at: string;
-  updated_at?: string;
+  updated_at: string | null;
 }
 
 export interface Session {
@@ -86,9 +86,9 @@ export interface Session {
   duration: number;
   type: 'individual' | 'group';
   status: 'scheduled' | 'completed' | 'cancelled';
-  notes?: string;
+  notes: string | null;
   created_at: string;
-  updated_at?: string;
+  updated_at: string | null;
 }
 
 export interface Statistics {

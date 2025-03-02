@@ -61,11 +61,16 @@ const Clients: React.FC = () => {
     setShowForm(true);
   };
 
-  const filteredClients = clients.filter(client =>
-    client.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.phone?.includes(searchTerm)
-  );
+  const filteredClients = clients.filter(client => {
+    const searchTermLower = searchTerm.toLowerCase();
+    const fullName = client.full_name?.toLowerCase() || '';
+    const email = client.email?.toLowerCase() || '';
+    const phone = client.phone || '';
+
+    return fullName.includes(searchTermLower) ||
+           email.includes(searchTermLower) ||
+           phone.includes(searchTerm);
+  });
 
   return (
     <div className="space-y-6">
@@ -135,18 +140,18 @@ const Clients: React.FC = () => {
                 <tr key={client.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {client.full_name}
+                      {client.full_name || 'Sin nombre'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{client.email}</div>
+                    <div className="text-sm text-gray-500">{client.email || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">{client.phone}</div>
+                    <div className="text-sm text-gray-500">{client.phone || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-500">
-                      {client.experience_level}
+                      {client.experience_level || 'No especificado'}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -155,7 +160,7 @@ const Clients: React.FC = () => {
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {client.status}
+                      {client.status || 'Desconocido'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -203,9 +208,9 @@ const Clients: React.FC = () => {
                   Cancelar
                 </button>
                 <button
-                  className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
+                  className="px-4 py-2 text-white bg-pink-600 rounded-lg hover:bg-pink-700"
                 >
-                  Guardar
+                  {selectedClient ? 'Guardar Cambios' : 'Crear Cliente'}
                 </button>
               </div>
             </div>
