@@ -1,23 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { useAuthStore } from '../store/authStore';
 
-const MainLayout: React.FC = () => {
-  const { user, isLoading, checkSession, signOut } = useAuthStore();
+interface MainLayoutProps {
+  children: React.ReactNode;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const { user, signOut } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    checkSession();
-  }, [checkSession]);
-
-  useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/login');
-    }
-  }, [user, isLoading, navigate]);
 
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
@@ -45,18 +39,6 @@ const MainLayout: React.FC = () => {
     navigate('/login');
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return null;
-  }
-
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Mobile sidebar backdrop */}
@@ -80,7 +62,7 @@ const MainLayout: React.FC = () => {
         <Header toggleSidebar={toggleSidebar} handleSignOut={handleSignOut} user={user} />
         
         <main className="flex-1 overflow-y-auto bg-gray-100 p-4">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

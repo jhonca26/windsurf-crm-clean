@@ -24,9 +24,17 @@ import AtenderConsultas from './pages/AtenderConsultas';
 import UserManagement from './pages/UserManagement';
 
 // Route guard component
-const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
-  const { user } = useAuthStore();
+const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
+  const { user, isLoading } = useAuthStore();
   
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -39,92 +47,104 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
 };
 
 function App() {
-  const { checkSession } = useAuthStore();
+  const { checkSession, isLoading } = useAuthStore();
 
   useEffect(() => {
     checkSession();
   }, [checkSession]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-pink-500"></div>
+      </div>
+    );
+  }
+
   return (
     <Router>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Dashboard />} />
-            
-            {/* Admin-only routes */}
-            <Route path="clientes" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Clients />
-              </ProtectedRoute>
-            } />
-            
-            {/* Shared routes */}
-            <Route path="consultas" element={<Consultations />} />
-            <Route path="consultas-nuevas" element={<NewConsultation />} />
-            <Route path="bonos" element={<BonosPage />} />
-            <Route path="estadisticas" element={<Statistics />} />
-            <Route path="whatsapp" element={<WhatsApp />} />
-            
-            {/* Agent-only routes */}
-            <Route path="atender-consultas" element={
-              <ProtectedRoute allowedRoles={['agent']}>
-                <AtenderConsultas />
-              </ProtectedRoute>
-            } />
-            
-            {/* Admin-only routes */}
-            <Route path="campanas" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Campaigns />
-              </ProtectedRoute>
-            } />
-            <Route path="televentas" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Televentas />
-              </ProtectedRoute>
-            } />
-            <Route path="configuracion" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Configuration />
-              </ProtectedRoute>
-            } />
-            <Route path="integraciones" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Integraciones />
-              </ProtectedRoute>
-            } />
-            <Route path="publicidades" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Publicidades />
-              </ProtectedRoute>
-            } />
-            <Route path="usuarios" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <UserManagement />
-              </ProtectedRoute>
-            } />
-            
-            {/* Placeholder routes */}
-            <Route path="agendas" element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold">Agendas</h1>
-                <p className="mt-4">Página en construcción</p>
-              </div>
-            } />
-            <Route path="transformaciones" element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold">Transformaciones</h1>
-                <p className="mt-4">Página en construcción</p>
-              </div>
-            } />
-          </Route>
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AuthProvider>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        
+        <Route path="/" element={
+          <ProtectedRoute allowedRoles={undefined}>
+            <MainLayout>
+              <Routes>
+                <Route index element={<Dashboard />} />
+                
+                {/* Admin-only routes */}
+                <Route path="clientes" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Clients />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Shared routes */}
+                <Route path="consultas" element={<Consultations />} />
+                <Route path="consultas-nuevas" element={<NewConsultation />} />
+                <Route path="bonos" element={<BonosPage />} />
+                <Route path="estadisticas" element={<Statistics />} />
+                <Route path="whatsapp" element={<WhatsApp />} />
+                
+                {/* Agent-only routes */}
+                <Route path="atender-consultas" element={
+                  <ProtectedRoute allowedRoles={['agent']}>
+                    <AtenderConsultas />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Admin-only routes */}
+                <Route path="campanas" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Campaigns />
+                  </ProtectedRoute>
+                } />
+                <Route path="televentas" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Televentas />
+                  </ProtectedRoute>
+                } />
+                <Route path="configuracion" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Configuration />
+                  </ProtectedRoute>
+                } />
+                <Route path="integraciones" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Integraciones />
+                  </ProtectedRoute>
+                } />
+                <Route path="publicidades" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <Publicidades />
+                  </ProtectedRoute>
+                } />
+                <Route path="usuarios" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <UserManagement />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Placeholder routes */}
+                <Route path="agendas" element={
+                  <div className="p-6">
+                    <h1 className="text-2xl font-bold">Agendas</h1>
+                    <p className="mt-4">Página en construcción</p>
+                  </div>
+                } />
+                <Route path="transformaciones" element={
+                  <div className="p-6">
+                    <h1 className="text-2xl font-bold">Transformaciones</h1>
+                    <p className="mt-4">Página en construcción</p>
+                  </div>
+                } />
+              </Routes>
+            </MainLayout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 }
