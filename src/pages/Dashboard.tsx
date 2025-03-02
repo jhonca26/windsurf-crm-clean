@@ -6,6 +6,13 @@ interface DashboardStats {
   totalConsultations: number;
   pendingConsultations: number;
   activeCampaigns: number;
+  monthlyIncome: number;
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    description: string;
+    created_at: string;
+  }>;
 }
 
 const Dashboard: React.FC = () => {
@@ -13,50 +20,88 @@ const Dashboard: React.FC = () => {
     totalClients: 0,
     totalConsultations: 0,
     pendingConsultations: 0,
-    activeCampaigns: 0
+    activeCampaigns: 0,
+    monthlyIncome: 0,
+    recentActivity: []
   });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        // Obtener total de clientes
-        const { count: clientsCount } = await supabase
-          .from('clients')
-          .select('*', { count: 'exact', head: true });
-
-        // Obtener total de consultas
-        const { count: consultationsCount } = await supabase
-          .from('consultations')
-          .select('*', { count: 'exact', head: true });
-
-        // Obtener consultas pendientes
-        const { count: pendingCount } = await supabase
-          .from('consultations')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'pending');
-
-        // Obtener campañas activas
-        const { count: campaignsCount } = await supabase
-          .from('campaigns')
-          .select('*', { count: 'exact', head: true })
-          .eq('status', 'active');
-
-        setStats({
-          totalClients: clientsCount || 0,
-          totalConsultations: consultationsCount || 0,
-          pendingConsultations: pendingCount || 0,
-          activeCampaigns: campaignsCount || 0
-        });
-      } catch (error) {
-        console.error('Error fetching stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchStats();
   }, []);
+
+  const fetchStats = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Obtener total de clientes
+      const { count: clientsCount } = await supabase
+        .from('clients')
+        .select('*', { count: 'exact', head: true });
+
+      // Obtener total de consultas
+      const { count: consultationsCount } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true });
+
+      // Obtener consultas pendientes
+      const { count: pendingCount } = await supabase
+        .from('consultations')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      // Obtener campañas activas
+      const { count: campaignsCount } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Obtener ingresos del mes actual
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: monthlyPayments } = await supabase
+        .from('payments')
+        .select('amount')
+        .gte('created_at', startOfMonth.toISOString())
+        .eq('status', 'completed');
+
+      const monthlyIncome = monthlyPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+
+      // Obtener actividad reciente
+      const { data: recentActivity } = await supabase
+        .from('consultations')
+        .select('id, created_at, status, client_name')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      setStats({
+        totalClients: clientsCount || 0,
+        totalConsultations: consultationsCount || 0,
+        pendingConsultations: pendingCount || 0,
+        activeCampaigns: campaignsCount || 0,
+        monthlyIncome,
+        recentActivity: recentActivity?.map(activity => ({
+          id: activity.id,
+          type: 'consultation',
+          description: `Nueva consulta de ${activity.client_name}`,
+          created_at: activity.created_at
+        })) || []
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-CO', {
+      style: 'currency',
+      currency: 'COP'
+    }).format(amount);
+  };
 
   if (isLoading) {
     return (
@@ -133,13 +178,43 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Ingresos del Mes */}
+      <div className="mt-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Ingresos del Mes</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.monthlyIncome)}</p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-full">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Actividad Reciente */}
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-4">Actividad Reciente</h2>
         <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6 text-center text-gray-500">
-            No hay actividad reciente para mostrar
-          </div>
+          {stats.recentActivity.length > 0 ? (
+            <div className="divide-y divide-gray-200">
+              {stats.recentActivity.map((activity) => (
+                <div key={activity.id} className="p-4">
+                  <p className="text-gray-900">{activity.description}</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {new Date(activity.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              No hay actividad reciente para mostrar
+            </div>
+          )}
         </div>
       </div>
     </div>
