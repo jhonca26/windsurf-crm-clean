@@ -12,7 +12,7 @@ interface Campaign {
   start_date: string;
   end_date?: string;
   created_at: string;
-  metrics: {
+  metrics?: {
     sent: number;
     delivered: number;
     opened: number;
@@ -62,9 +62,9 @@ const CampaignsPage: React.FC = () => {
     try {
       const { error } = await supabase
         .from('campaigns')
-        .insert([{
-          ...formData,
-          created_at: new Date().toISOString(),
+        .insert([{ 
+          ...formData, 
+          created_at: new Date().toISOString(), 
           metrics: {
             sent: 0,
             delivered: 0,
@@ -199,23 +199,23 @@ const CampaignsPage: React.FC = () => {
               <div className="mt-4 grid grid-cols-5 gap-2 text-center text-xs">
                 <div>
                   <p className="text-gray-500">Enviados</p>
-                  <p className="font-medium">{campaign.metrics.sent}</p>
+                  <p className="font-medium">{campaign.metrics?.sent ?? 0}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Entregados</p>
-                  <p className="font-medium">{campaign.metrics.delivered}</p>
+                  <p className="font-medium">{campaign.metrics?.delivered ?? 0}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Abiertos</p>
-                  <p className="font-medium">{campaign.metrics.opened}</p>
+                  <p className="font-medium">{campaign.metrics?.opened ?? 0}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Clicks</p>
-                  <p className="font-medium">{campaign.metrics.clicked}</p>
+                  <p className="font-medium">{campaign.metrics?.clicked ?? 0}</p>
                 </div>
                 <div>
                   <p className="text-gray-500">Conversiones</p>
-                  <p className="font-medium">{campaign.metrics.converted}</p>
+                  <p className="font-medium">{campaign.metrics?.converted ?? 0}</p>
                 </div>
               </div>
 
@@ -224,8 +224,8 @@ const CampaignsPage: React.FC = () => {
                   <button
                     onClick={() => toggleStatus(campaign.id, campaign.status)}
                     className={`p-2 rounded-full ${
-                      campaign.status === 'active' 
-                        ? 'text-green-600 hover:bg-green-50' 
+                      campaign.status === 'active'
+                        ? 'text-green-600 hover:bg-green-50'
                         : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >

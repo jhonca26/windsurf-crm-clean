@@ -34,7 +34,7 @@ const Clients: React.FC = () => {
       // Asegurarnos de que todos los campos tengan valores por defecto
       const processedData = (data || []).map(client => ({
         ...client,
-        full_name: client.full_name || 'Sin nombre',
+        name: client.name || 'Sin nombre',
         email: client.email || null,
         phone: client.phone || null,
         experience_level: client.experience_level || null,
@@ -45,7 +45,7 @@ const Clients: React.FC = () => {
 
       // Ordenar los clientes por nombre después de procesarlos
       const sortedData = processedData.sort((a, b) => 
-        a.full_name.localeCompare(b.full_name)
+        a.name.localeCompare(b.name)
       );
 
       setClients(sortedData);
@@ -82,11 +82,11 @@ const Clients: React.FC = () => {
 
   const filteredClients = clients.filter(client => {
     const searchTermLower = searchTerm.toLowerCase();
-    const fullName = (client.full_name || '').toLowerCase();
+    const name = (client.name || '').toLowerCase();
     const email = (client.email || '').toLowerCase();
     const phone = client.phone || '';
 
-    return fullName.includes(searchTermLower) ||
+    return name.includes(searchTermLower) ||
            email.includes(searchTermLower) ||
            phone.includes(searchTerm);
   });
@@ -159,7 +159,7 @@ const Clients: React.FC = () => {
                 <tr key={client.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {client.full_name}
+                      {client.name}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -222,7 +222,7 @@ const Clients: React.FC = () => {
                 e.preventDefault();
                 const formData = new FormData(e.currentTarget);
                 const clientData = {
-                  full_name: formData.get('full_name') as string || 'Sin nombre',
+                  name: formData.get('name') as string || 'Sin nombre',
                   email: formData.get('email') as string || null,
                   phone: formData.get('phone') as string || null,
                   experience_level: formData.get('experience_level') as string || null,
@@ -268,8 +268,8 @@ const Clients: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      name="full_name"
-                      defaultValue={selectedClient?.full_name || ''}
+                      name="name"
+                      defaultValue={selectedClient?.name || ''}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
                     />
                   </div>
