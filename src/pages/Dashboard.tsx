@@ -25,6 +25,7 @@ const Dashboard: React.FC = () => {
     recentActivity: []
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStats();
@@ -33,56 +34,87 @@ const Dashboard: React.FC = () => {
   const fetchStats = async () => {
     try {
       setIsLoading(true);
+      setError(null);
       
       // Obtener total de clientes
-      const { count: clientsCount } = await supabase
+      const clientsResult = await supabase
         .from('clients')
         .select('*', { count: 'exact', head: true });
 
+      if (clientsResult.error) {
+        console.error('Error fetching clients:', clientsResult.error);
+        throw new Error(`Error al obtener clientes: ${clientsResult.error.message}`);
+      }
+
       // Obtener total de consultas
-      const { count: consultationsCount } = await supabase
+      const consultationsResult = await supabase
         .from('consultations')
         .select('*', { count: 'exact', head: true });
 
+      if (consultationsResult.error) {
+        console.error('Error fetching consultations:', consultationsResult.error);
+        throw new Error(`Error al obtener consultas: ${consultationsResult.error.message}`);
+      }
+
       // Obtener consultas pendientes
-      const { count: pendingCount } = await supabase
+      const pendingResult = await supabase
         .from('consultations')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending');
 
+      if (pendingResult.error) {
+        console.error('Error fetching pending consultations:', pendingResult.error);
+        throw new Error(`Error al obtener consultas pendientes: ${pendingResult.error.message}`);
+      }
+
       // Obtener campañas activas
-      const { count: campaignsCount } = await supabase
+      const campaignsResult = await supabase
         .from('campaigns')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
+
+      if (campaignsResult.error) {
+        console.error('Error fetching campaigns:', campaignsResult.error);
+        throw new Error(`Error al obtener campañas: ${campaignsResult.error.message}`);
+      }
 
       // Obtener ingresos del mes actual
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const { data: monthlyPayments } = await supabase
+      const paymentsResult = await supabase
         .from('payments')
         .select('amount')
         .gte('created_at', startOfMonth.toISOString())
         .eq('status', 'completed');
 
-      const monthlyIncome = monthlyPayments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
+      if (paymentsResult.error) {
+        console.error('Error fetching payments:', paymentsResult.error);
+        throw new Error(`Error al obtener pagos: ${paymentsResult.error.message}`);
+      }
+
+      const monthlyIncome = paymentsResult.data?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
 
       // Obtener actividad reciente
-      const { data: recentActivity } = await supabase
+      const activityResult = await supabase
         .from('consultations')
         .select('id, created_at, status, client_name')
         .order('created_at', { ascending: false })
         .limit(5);
 
+      if (activityResult.error) {
+        console.error('Error fetching recent activity:', activityResult.error);
+        throw new Error(`Error al obtener actividad reciente: ${activityResult.error.message}`);
+      }
+
       setStats({
-        totalClients: clientsCount || 0,
-        totalConsultations: consultationsCount || 0,
-        pendingConsultations: pendingCount || 0,
-        activeCampaigns: campaignsCount || 0,
+        totalClients: clientsResult.count || 0,
+        totalConsultations: consultationsResult.count || 0,
+        pendingConsultations: pendingResult.count || 0,
+        activeCampaigns: campaignsResult.count || 0,
         monthlyIncome,
-        recentActivity: recentActivity?.map(activity => ({
+        recentActivity: activityResult.data?.map(activity => ({
           id: activity.id,
           type: 'consultation',
           description: `Nueva consulta de ${activity.client_name}`,
@@ -90,7 +122,8 @@ const Dashboard: React.FC = () => {
         })) || []
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('Error fetching dashboard stats:', error);
+      setError(error instanceof Error ? error.message : 'Error al cargar los datos del dashboard');
     } finally {
       setIsLoading(false);
     }
@@ -115,6 +148,13 @@ const Dashboard: React.FC = () => {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
       
+      {error && (
+        <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Clientes */}
         <div className="bg-white rounded-lg shadow p-6">
