@@ -2,8 +2,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { AuthProvider } from './components/AuthProvider';
-
-// Layouts
 import MainLayout from './layouts/MainLayout';
 
 // Pages
@@ -66,87 +64,84 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
-        <Route path="/" element={
+        {/* Protected routes */}
+        <Route element={
           <ProtectedRoute allowedRoles={undefined}>
-            <MainLayout>
-              <Routes>
-                {/* Redirect from root to dashboard */}
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                
-                {/* Dashboard route */}
-                <Route path="dashboard" element={<Dashboard />} />
-                
-                {/* Admin-only routes */}
-                <Route path="clientes" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Clients />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Shared routes */}
-                <Route path="consultas" element={<Consultations />} />
-                <Route path="consultas-nuevas" element={<NewConsultation />} />
-                <Route path="bonos" element={<BonosPage />} />
-                <Route path="estadisticas" element={<Statistics />} />
-                <Route path="whatsapp" element={<WhatsApp />} />
-                
-                {/* Agent-only routes */}
-                <Route path="atender-consultas" element={
-                  <ProtectedRoute allowedRoles={['agent']}>
-                    <AtenderConsultas />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Admin-only routes */}
-                <Route path="campanas" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Campaigns />
-                  </ProtectedRoute>
-                } />
-                <Route path="televentas" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Televentas />
-                  </ProtectedRoute>
-                } />
-                <Route path="configuracion" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Configuration />
-                  </ProtectedRoute>
-                } />
-                <Route path="integraciones" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Integraciones />
-                  </ProtectedRoute>
-                } />
-                <Route path="publicidades" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <Publicidades />
-                  </ProtectedRoute>
-                } />
-                <Route path="usuarios" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <UserManagement />
-                  </ProtectedRoute>
-                } />
-                
-                {/* Placeholder routes */}
-                <Route path="agendas" element={
-                  <div className="p-6">
-                    <h1 className="text-2xl font-bold">Agendas</h1>
-                    <p className="mt-4">Página en construcción</p>
-                  </div>
-                } />
-                <Route path="transformaciones" element={
-                  <div className="p-6">
-                    <h1 className="text-2xl font-bold">Transformaciones</h1>
-                    <p className="mt-4">Página en construcción</p>
-                  </div>
-                } />
-              </Routes>
-            </MainLayout>
+            <MainLayout />
           </ProtectedRoute>
-        } />
+        }>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Admin-only routes */}
+          <Route path="/clientes" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Clients />
+            </ProtectedRoute>
+          } />
+          
+          {/* Shared routes */}
+          <Route path="/consultas" element={<Consultations />} />
+          <Route path="/consultas-nuevas" element={<NewConsultation />} />
+          <Route path="/bonos" element={<BonosPage />} />
+          <Route path="/estadisticas" element={<Statistics />} />
+          <Route path="/whatsapp" element={<WhatsApp />} />
+          
+          {/* Agent-only routes */}
+          <Route path="/atender-consultas" element={
+            <ProtectedRoute allowedRoles={['agent']}>
+              <AtenderConsultas />
+            </ProtectedRoute>
+          } />
+          
+          {/* Admin-only routes */}
+          <Route path="/campanas" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Campaigns />
+            </ProtectedRoute>
+          } />
+          <Route path="/televentas" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Televentas />
+            </ProtectedRoute>
+          } />
+          <Route path="/configuracion" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Configuration />
+            </ProtectedRoute>
+          } />
+          <Route path="/integraciones" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Integraciones />
+            </ProtectedRoute>
+          } />
+          <Route path="/publicidades" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <Publicidades />
+            </ProtectedRoute>
+          } />
+          <Route path="/usuarios" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <UserManagement />
+            </ProtectedRoute>
+          } />
+          
+          {/* Placeholder routes */}
+          <Route path="/agendas" element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Agendas</h1>
+              <p className="mt-4">Página en construcción</p>
+            </div>
+          } />
+          <Route path="/transformaciones" element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold">Transformaciones</h1>
+              <p className="mt-4">Página en construcción</p>
+            </div>
+          } />
+        </Route>
         
+        {/* Catch all route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
