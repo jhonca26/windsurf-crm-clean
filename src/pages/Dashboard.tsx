@@ -12,6 +12,7 @@ interface DashboardStats {
     type: string;
     description: string;
     created_at: string;
+    status: string;
   }>;
 }
 
@@ -99,7 +100,15 @@ const Dashboard: React.FC = () => {
       // Obtener actividad reciente (consultas)
       const consultationsActivityResult = await supabase
         .from('consultations')
-        .select('id, created_at, status, client:clients(name)')
+        .select(`
+          id,
+          created_at,
+          status,
+          client_id,
+          clients (
+            name
+          )
+        `)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -108,18 +117,22 @@ const Dashboard: React.FC = () => {
         throw new Error(`Error al obtener actividad reciente: ${consultationsActivityResult.error.message}`);
       }
 
+      // Transformar los datos de actividad reciente
+      const recentActivity = consultationsActivityResult.data.map(consultation => ({
+        id: consultation.id,
+        type: 'consultation',
+        description: `Nueva consulta ${consultation.clients?.name ? `de ${consultation.clients.name}` : ''}`,
+        created_at: consultation.created_at,
+        status: consultation.status
+      }));
+
       setStats({
         totalClients: clientsResult.count || 0,
         totalConsultations: consultationsResult.count || 0,
         pendingConsultations: pendingResult.count || 0,
         activeCampaigns: campaignsResult.count || 0,
         monthlyIncome,
-        recentActivity: consultationsActivityResult.data?.map(activity => ({
-          id: activity.id,
-          type: 'consultation',
-          description: `Nueva consulta de ${activity.client?.name || 'Cliente'}`,
-          created_at: activity.created_at
-        })) || []
+        recentActivity
       });
     } catch (error) {
       console.error('Error fetching dashboard stats:', error);
@@ -134,6 +147,19 @@ const Dashboard: React.FC = () => {
       style: 'currency',
       currency: 'COP'
     }).format(amount);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'text-yellow-600';
+      case 'completed':
+        return 'text-green-600';
+      case 'cancelled':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
   };
 
   if (isLoading) {
@@ -243,7 +269,12 @@ const Dashboard: React.FC = () => {
             <div className="divide-y divide-gray-200">
               {stats.recentActivity.map((activity) => (
                 <div key={activity.id} className="p-4">
-                  <p className="text-gray-900">{activity.description}</p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-900">{activity.description}</p>
+                    <span className={`text-sm ${getStatusColor(activity.status)}`}>
+                      {activity.status}
+                    </span>
+                  </div>
                   <p className="text-sm text-gray-500 mt-1">
                     {new Date(activity.created_at).toLocaleDateString()}
                   </p>
