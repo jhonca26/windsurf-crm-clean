@@ -22,7 +22,6 @@ export const useAuthStore = create<AuthState>()(
       isLoading: true,
 
       checkSession: async () => {
-        console.log('Checking session...'); // Debug log
         try {
           const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
@@ -33,12 +32,9 @@ export const useAuthStore = create<AuthState>()(
           }
 
           if (!session) {
-            console.log('No session found'); // Debug log
             set({ user: null, isLoading: false });
             return;
           }
-
-          console.log('Session found:', session); // Debug log
 
           try {
             const { data: userData, error: userError } = await supabase
@@ -48,20 +44,14 @@ export const useAuthStore = create<AuthState>()(
               .single();
 
             if (userError) {
-              console.error('Error getting user role:', userError);
-              // Si hay error al obtener el rol, asumimos que es agente
               const userWithDefaultRole: CustomUser = {
                 ...session.user,
                 role: 'agent'
               };
-              console.log('Setting default role:', userWithDefaultRole);
               set({ user: userWithDefaultRole, isLoading: false });
               return;
             }
 
-            console.log('User data from DB:', userData); // Debug log
-
-            // Asegurarnos de que el rol sea válido
             const role = userData?.role && ['admin', 'agent'].includes(userData.role) 
               ? userData.role as 'admin' | 'agent'
               : 'agent';
@@ -71,16 +61,13 @@ export const useAuthStore = create<AuthState>()(
               role
             };
 
-            console.log('Setting user with role:', userWithRole); // Debug log
             set({ user: userWithRole, isLoading: false });
           } catch (dbError) {
             console.error('Database error:', dbError);
-            // En caso de error, establecer un rol por defecto
             const userWithDefaultRole: CustomUser = {
               ...session.user,
               role: 'agent'
             };
-            console.log('Setting default role after error:', userWithDefaultRole);
             set({ user: userWithDefaultRole, isLoading: false });
           }
         } catch (error) {
@@ -90,24 +77,14 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signIn: async (email: string, password: string) => {
-        console.log('Attempting sign in...'); // Debug log
         try {
           const { data, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
 
-          if (signInError) {
-            console.error('Sign in error:', signInError);
-            throw signInError;
-          }
-
-          if (!data.user) {
-            console.error('No user data after sign in');
-            throw new Error('No user data received');
-          }
-
-          console.log('Sign in successful:', data); // Debug log
+          if (signInError) throw signInError;
+          if (!data.user) throw new Error('No user data received');
 
           try {
             const { data: userData, error: userError } = await supabase
@@ -117,20 +94,14 @@ export const useAuthStore = create<AuthState>()(
               .single();
 
             if (userError) {
-              console.error('Error getting role:', userError);
-              // Si hay error al obtener el rol, asumimos que es agente
               const userWithDefaultRole: CustomUser = {
                 ...data.user,
                 role: 'agent'
               };
-              console.log('Setting default role during sign in:', userWithDefaultRole);
               set({ user: userWithDefaultRole, isLoading: false });
               return;
             }
 
-            console.log('User role data:', userData); // Debug log
-
-            // Asegurarnos de que el rol sea válido
             const role = userData?.role && ['admin', 'agent'].includes(userData.role)
               ? userData.role as 'admin' | 'agent'
               : 'agent';
@@ -140,16 +111,13 @@ export const useAuthStore = create<AuthState>()(
               role
             };
 
-            console.log('Setting user after sign in:', userWithRole); // Debug log
             set({ user: userWithRole, isLoading: false });
           } catch (dbError) {
             console.error('Database error during sign in:', dbError);
-            // En caso de error, establecer un rol por defecto
             const userWithDefaultRole: CustomUser = {
               ...data.user,
               role: 'agent'
             };
-            console.log('Setting default role after sign in error:', userWithDefaultRole);
             set({ user: userWithDefaultRole, isLoading: false });
           }
         } catch (error) {
@@ -159,14 +127,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       signOut: async () => {
-        console.log('Signing out...'); // Debug log
         try {
           const { error } = await supabase.auth.signOut();
-          if (error) {
-            console.error('Error during sign out:', error);
-            throw error;
-          }
-          console.log('Sign out successful'); // Debug log
+          if (error) throw error;
           set({ user: null, isLoading: false });
         } catch (error) {
           console.error('Error in signOut:', error);
@@ -177,6 +140,12 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       partialize: (state) => ({ user: state.user }),
+      version: 1,
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isLoading = false;
+        }
+      },
     }
   )
 );
