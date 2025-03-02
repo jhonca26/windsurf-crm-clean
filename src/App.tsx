@@ -70,7 +70,11 @@ function App() {
           <ProtectedRoute allowedRoles={undefined}>
             <MainLayout>
               <Routes>
-                <Route index element={<Dashboard />} />
+                {/* Redirect from root to dashboard */}
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                
+                {/* Dashboard route */}
+                <Route path="dashboard" element={<Dashboard />} />
                 
                 {/* Admin-only routes */}
                 <Route path="clientes" element={
