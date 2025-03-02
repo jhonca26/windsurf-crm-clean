@@ -41,7 +41,7 @@ const Sidebar: React.FC = () => {
 
   const menuItems: MenuItem[] = [
     {
-      to: "/",
+      to: "/dashboard",
       icon: <LayoutDashboard className="mr-3 h-5 w-5" />,
       label: "Panel"
     },
