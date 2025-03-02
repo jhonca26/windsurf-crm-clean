@@ -25,11 +25,26 @@ const Clients: React.FC = () => {
       const { data, error } = await supabase
         .from('clients')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('full_name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching clients:', error);
+        throw error;
+      }
 
-      setClients(data || []);
+      // Asegurarnos de que todos los campos tengan valores por defecto
+      const processedData = (data || []).map(client => ({
+        ...client,
+        full_name: client.full_name || 'Sin nombre',
+        email: client.email || null,
+        phone: client.phone || null,
+        experience_level: client.experience_level || null,
+        status: client.status || 'Inactivo',
+        notes: client.notes || null,
+        updated_at: client.updated_at || null
+      }));
+
+      setClients(processedData);
     } catch (err) {
       console.error('Error fetching clients:', err);
       setError('Error al cargar los clientes');
@@ -63,8 +78,8 @@ const Clients: React.FC = () => {
 
   const filteredClients = clients.filter(client => {
     const searchTermLower = searchTerm.toLowerCase();
-    const fullName = client.full_name?.toLowerCase() || '';
-    const email = client.email?.toLowerCase() || '';
+    const fullName = (client.full_name || '').toLowerCase();
+    const email = (client.email || '').toLowerCase();
     const phone = client.phone || '';
 
     return fullName.includes(searchTermLower) ||
@@ -140,7 +155,7 @@ const Clients: React.FC = () => {
                 <tr key={client.id}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">
-                      {client.full_name || 'Sin nombre'}
+                      {client.full_name}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -160,7 +175,7 @@ const Clients: React.FC = () => {
                         ? 'bg-green-100 text-green-800'
                         : 'bg-red-100 text-red-800'
                     }`}>
-                      {client.status || 'Desconocido'}
+                      {client.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -199,20 +214,139 @@ const Clients: React.FC = () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 {selectedClient ? 'Editar Cliente' : 'Nuevo Cliente'}
               </h2>
-              {/* Form content will go here */}
-              <div className="mt-4 flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 text-white bg-pink-600 rounded-lg hover:bg-pink-700"
-                >
-                  {selectedClient ? 'Guardar Cambios' : 'Crear Cliente'}
-                </button>
-              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const clientData = {
+                  full_name: formData.get('full_name') as string || 'Sin nombre',
+                  email: formData.get('email') as string || null,
+                  phone: formData.get('phone') as string || null,
+                  experience_level: formData.get('experience_level') as string || null,
+                  status: formData.get('status') as string || 'Inactivo',
+                  notes: formData.get('notes') as string || null,
+                };
+
+                try {
+                  if (selectedClient) {
+                    const { error } = await supabase
+                      .from('clients')
+                      .update(clientData)
+                      .eq('id', selectedClient.id);
+
+                    if (error) throw error;
+
+                    setClients(clients.map(c => 
+                      c.id === selectedClient.id ? { ...c, ...clientData } : c
+                    ));
+                  } else {
+                    const { data, error } = await supabase
+                      .from('clients')
+                      .insert([{ ...clientData, user_id: user?.id }])
+                      .select()
+                      .single();
+
+                    if (error) throw error;
+                    if (data) {
+                      setClients([data, ...clients]);
+                    }
+                  }
+
+                  setShowForm(false);
+                } catch (err) {
+                  console.error('Error saving client:', err);
+                  alert('Error al guardar el cliente');
+                }
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Nombre Completo
+                    </label>
+                    <input
+                      type="text"
+                      name="full_name"
+                      defaultValue={selectedClient?.full_name || ''}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      defaultValue={selectedClient?.email || ''}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Teléfono
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      defaultValue={selectedClient?.phone || ''}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Nivel de Experiencia
+                    </label>
+                    <select
+                      name="experience_level"
+                      defaultValue={selectedClient?.experience_level || ''}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    >
+                      <option value="">Seleccionar nivel</option>
+                      <option value="Principiante">Principiante</option>
+                      <option value="Intermedio">Intermedio</option>
+                      <option value="Avanzado">Avanzado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Estado
+                    </label>
+                    <select
+                      name="status"
+                      defaultValue={selectedClient?.status || 'Inactivo'}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    >
+                      <option value="Activo">Activo</option>
+                      <option value="Inactivo">Inactivo</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Notas
+                    </label>
+                    <textarea
+                      name="notes"
+                      defaultValue={selectedClient?.notes || ''}
+                      rows={3}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-6 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-pink-600 hover:bg-pink-700"
+                  >
+                    {selectedClient ? 'Guardar Cambios' : 'Crear Cliente'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
