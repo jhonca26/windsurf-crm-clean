@@ -1,82 +1,55 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-
-interface User {
-  id: string;
-  email: string;
-  full_name?: string;
-}
+import type { User } from '@supabase/supabase-js';
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
-  error: string | null;
   checkSession: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signOut: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  isLoading: false,
-  error: null,
+  isLoading: true,
 
   checkSession: async () => {
-    set({ isLoading: true });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        set({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name
-          },
-          isLoading: false
-        });
-      } else {
-        set({ user: null, isLoading: false });
-      }
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      set({ user: session?.user || null });
     } catch (error) {
-      console.error('Error checking session:', error);
-      set({ user: null, error: error.message, isLoading: false });
+      console.error('Error checking auth session:', error);
+      set({ user: null });
+    } finally {
+      set({ isLoading: false });
     }
   },
 
-  login: async (email: string, password: string) => {
-    set({ isLoading: true, error: null });
+  signIn: async (email: string, password: string) => {
     try {
-      const { data: { session }, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
+      
       if (error) throw error;
-
-      if (session?.user) {
-        set({
-          user: {
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name
-          },
-          isLoading: false
-        });
-      }
+      set({ user: data.user });
+      return { error: null };
     } catch (error) {
-      console.error('Error logging in:', error);
-      set({ error: error.message, isLoading: false });
+      console.error('Error signing in:', error);
+      return { error: error as Error };
     }
   },
 
-  logout: async () => {
-    set({ isLoading: true });
+  signOut: async () => {
     try {
-      await supabase.auth.signOut();
-      set({ user: null, isLoading: false });
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      set({ user: null });
     } catch (error) {
-      console.error('Error logging out:', error);
-      set({ error: error.message, isLoading: false });
+      console.error('Error signing out:', error);
     }
   },
 }));
