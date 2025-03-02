@@ -105,7 +105,7 @@ const Dashboard: React.FC = () => {
           created_at,
           status,
           client:client_id (
-            full_name
+            name
           )
         `)
         .order('created_at', { ascending: false })
@@ -120,7 +120,7 @@ const Dashboard: React.FC = () => {
       const recentActivity = (consultationsActivityResult.data || []).map(consultation => ({
         id: consultation.id,
         type: 'consultation',
-        description: `Nueva consulta ${consultation.client?.full_name ? `de ${consultation.client.full_name}` : 'de cliente'}`,
+        description: `Nueva consulta ${consultation.client?.name ? `de ${consultation.client.name}` : 'de cliente'}`,
         created_at: consultation.created_at,
         status: consultation.status || 'pending'
       }));
