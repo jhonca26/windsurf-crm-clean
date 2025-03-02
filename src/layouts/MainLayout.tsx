@@ -4,11 +4,7 @@ import Sidebar from '../components/Sidebar';
 import Header from '../components/Header';
 import { useAuthStore } from '../store/authStore';
 
-interface MainLayoutProps {
-  children: React.ReactNode;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = () => {
+const MainLayout = () => {
   const { user, signOut } = useAuthStore();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
