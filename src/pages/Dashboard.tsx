@@ -96,16 +96,16 @@ const Dashboard: React.FC = () => {
 
       const monthlyIncome = paymentsResult.data?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
 
-      // Obtener actividad reciente
-      const activityResult = await supabase
+      // Obtener actividad reciente (consultas)
+      const consultationsActivityResult = await supabase
         .from('consultations')
-        .select('id, created_at, status, client_name')
+        .select('id, created_at, status, client:clients(name)')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (activityResult.error) {
-        console.error('Error fetching recent activity:', activityResult.error);
-        throw new Error(`Error al obtener actividad reciente: ${activityResult.error.message}`);
+      if (consultationsActivityResult.error) {
+        console.error('Error fetching recent activity:', consultationsActivityResult.error);
+        throw new Error(`Error al obtener actividad reciente: ${consultationsActivityResult.error.message}`);
       }
 
       setStats({
@@ -114,10 +114,10 @@ const Dashboard: React.FC = () => {
         pendingConsultations: pendingResult.count || 0,
         activeCampaigns: campaignsResult.count || 0,
         monthlyIncome,
-        recentActivity: activityResult.data?.map(activity => ({
+        recentActivity: consultationsActivityResult.data?.map(activity => ({
           id: activity.id,
           type: 'consultation',
-          description: `Nueva consulta de ${activity.client_name}`,
+          description: `Nueva consulta de ${activity.client?.name || 'Cliente'}`,
           created_at: activity.created_at
         })) || []
       });
