@@ -42,7 +42,16 @@ const CampaignsPage: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCampaigns(data || []);
+
+      // Validar y transformar los datos antes de guardarlos
+      const validatedCampaigns = (data || []).map(campaign => ({
+        ...campaign,
+        type: campaign.type || 'email', // Valor por defecto si type es null
+        status: campaign.status || 'draft', // Valor por defecto si status es null
+        sent_count: campaign.sent_count || 0 // Valor por defecto si sent_count es null
+      }));
+
+      setCampaigns(validatedCampaigns);
     } catch (err) {
       console.error('Error fetching campaigns:', err);
       setError('Error al cargar las campañas');
@@ -101,6 +110,15 @@ const CampaignsPage: React.FC = () => {
     }
   };
 
+  const getTypeDisplay = (type: Campaign['type']) => {
+    const typeMap = {
+      email: 'EMAIL',
+      sms: 'SMS',
+      whatsapp: 'WHATSAPP'
+    };
+    return typeMap[type] || 'N/A';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -148,7 +166,7 @@ const CampaignsPage: React.FC = () => {
               <div className="mt-4 space-y-2">
                 <div className="flex items-center text-sm text-gray-600">
                   <Send className="h-4 w-4 mr-2" />
-                  {campaign.type.toUpperCase()}
+                  {getTypeDisplay(campaign.type)}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <BarChart className="h-4 w-4 mr-2" />
@@ -203,20 +221,20 @@ const CampaignsPage: React.FC = () => {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-pink-500 focus:border-pink-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
                   required
                 />
               </div>
 
               <div>
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                  Tipo
+                  Tipo de Campaña
                 </label>
                 <select
                   id="type"
                   value={formData.type}
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as 'email' | 'sms' | 'whatsapp' })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-pink-500 focus:border-pink-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
                 >
                   <option value="email">Email</option>
                   <option value="sms">SMS</option>
@@ -225,14 +243,14 @@ const CampaignsPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="target_audience" className="block text-sm font-medium text-gray-700">
-                  Audiencia
+                <label htmlFor="target" className="block text-sm font-medium text-gray-700">
+                  Audiencia Objetivo
                 </label>
                 <select
-                  id="target_audience"
+                  id="target"
                   value={formData.target_audience}
                   onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-pink-500 focus:border-pink-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
                 >
                   <option value="all">Todos los clientes</option>
                   <option value="active">Clientes activos</option>
@@ -249,21 +267,21 @@ const CampaignsPage: React.FC = () => {
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={4}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-pink-500 focus:border-pink-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
                   required
                 />
               </div>
 
               <div>
-                <label htmlFor="scheduled_for" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="schedule" className="block text-sm font-medium text-gray-700">
                   Programar para (opcional)
                 </label>
                 <input
                   type="datetime-local"
-                  id="scheduled_for"
+                  id="schedule"
                   value={formData.scheduled_for}
                   onChange={(e) => setFormData({ ...formData, scheduled_for: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-pink-500 focus:border-pink-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-pink-500 focus:ring-pink-500"
                 />
               </div>
 
@@ -271,15 +289,15 @@ const CampaignsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 border border-transparent rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
+                  className="px-4 py-2 text-sm font-medium text-white bg-pink-600 rounded-md hover:bg-pink-700"
                 >
-                  Crear
+                  Crear Campaña
                 </button>
               </div>
             </form>
